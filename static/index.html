@@ -151,8 +151,7 @@ function renderGroups(groups, containerId) {
                 <th class="text-center">Cuota</th>
                 <th class="text-end">Monto cuota</th>
                 <th class="text-end">Mi parte</th>
-                <th class="text-end">Me deben</th>
-                <th>Participantes</th>
+                <th>Me deben</th>
               </tr>
             </thead>
             <tbody>
@@ -162,11 +161,15 @@ function renderGroups(groups, containerId) {
                 <td class="text-center">${item.installment_number}/${item.num_installments}</td>
                 <td class="text-end">${fmt(item.installment_amount)}</td>
                 <td class="text-end ${item.owner_amount === 0 ? 'text-muted' : ''}">${fmt(item.owner_amount)}</td>
-                <td class="text-end ${item.others_amount > 0 ? 'text-info fw-semibold' : 'text-muted'}">${fmt(item.others_amount)}</td>
                 <td>
-                  ${item.participants.length === 0
+                  ${item.per_participant.length === 0
                     ? `<span class="text-muted small">${item.owner_participates ? 'Solo yo' : '–'}</span>`
-                    : item.participants.map(p => `<span class="badge bg-secondary me-1">${p.name}</span>`).join('')
+                    : item.per_participant.map(p =>
+                        `<span class="me-2 text-nowrap">
+                           <span class="badge bg-secondary">${p.name}</span>
+                           <span class="text-info fw-semibold">${fmt(p.amount)}</span>
+                         </span>`
+                      ).join('')
                   }
                 </td>
               </tr>`).join('')}

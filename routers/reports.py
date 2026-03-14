@@ -57,7 +57,10 @@ def get_report(month: int, year: int):
                 "installment_amount": installment_amount,
                 "owner_amount": owner_amount,
                 "others_amount": others_amount,
-                "participants": participants,
+                "per_participant": [
+                    {"person_id": pp["person_id"], "name": pp["name"], "amount": per_person}
+                    for pp in participants
+                ],
                 "owner_participates": bool(p["owner_participates"]),
             })
 
