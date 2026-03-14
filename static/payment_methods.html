@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mis Compras – Métodos de pago</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-dark bg-dark mb-4">
+  <div class="container-fluid">
+    <span class="navbar-brand fw-bold">💳 Mis Compras</span>
+    <div>
+      <a href="/index.html"           class="btn btn-sm btn-outline-light me-1">Reporte</a>
+      <a href="/purchases.html"       class="btn btn-sm btn-outline-light me-1">Compras</a>
+      <a href="/people.html"          class="btn btn-sm btn-outline-light me-1">Personas</a>
+      <a href="/payment_methods.html" class="btn btn-sm btn-light">Métodos de pago</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container" style="max-width:540px">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">Métodos de pago</h5>
+    <button class="btn btn-primary btn-sm" onclick="openModal()">
+      <i class="bi bi-plus-lg me-1"></i>Agregar
+    </button>
+  </div>
+
+  <!-- Credit cards -->
+  <h6 class="text-muted mt-3 mb-1"><i class="bi bi-credit-card me-1"></i>Tarjetas de crédito</h6>
+  <div class="card shadow-sm mb-4">
+    <ul class="list-group list-group-flush" id="listCC">
+      <li class="list-group-item text-muted">Cargando…</li>
+    </ul>
+  </div>
+
+  <!-- Person debts -->
+  <h6 class="text-muted mb-1"><i class="bi bi-person-exclamation me-1"></i>Le debo a…</h6>
+  <div class="card shadow-sm">
+    <ul class="list-group list-group-flush" id="listPD">
+      <li class="list-group-item text-muted">Cargando…</li>
+    </ul>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="modalTitle">Agregar método</h6>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Nombre *</label>
+          <input type="text" class="form-control" id="fName" />
+        </div>
+        <div>
+          <label class="form-label">Tipo *</label>
+          <select class="form-select" id="fType">
+            <option value="credit_card">Tarjeta de crédito</option>
+            <option value="person_debt">Le debo a… (persona)</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="save()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirm -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-body">¿Eliminar <strong id="deleteName"></strong>?</div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-danger btn-sm" id="confirmBtn">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let methods = [];
+let editingId = null;
+const modal       = new bootstrap.Modal(document.getElementById('modal'));
+const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+async function load() {
+  methods = await fetch('/api/payment-methods').then(r => r.json());
+  render();
+}
+
+function renderList(listId, items) {
+  const ul = document.getElementById(listId);
+  if (!items.length) {
+    ul.innerHTML = '<li class="list-group-item text-muted small">Sin entradas.</li>';
+    return;
+  }
+  ul.innerHTML = items.map(m => `
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+      <span>${m.name}</span>
+      <span>
+        <button class="btn btn-sm btn-outline-secondary me-1" onclick="openModal(${m.id})">
+          <i class="bi bi-pencil"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete(${m.id}, '${m.name.replace(/'/g,"\\'")}')">
+          <i class="bi bi-trash"></i>
+        </button>
+      </span>
+    </li>`).join('');
+}
+
+function render() {
+  renderList('listCC', methods.filter(m => m.type === 'credit_card'));
+  renderList('listPD', methods.filter(m => m.type === 'person_debt'));
+}
+
+function openModal(id = null) {
+  editingId = id;
+  document.getElementById('modalTitle').textContent = id ? 'Editar método' : 'Agregar método';
+  if (id) {
+    const m = methods.find(x => x.id === id);
+    document.getElementById('fName').value = m.name;
+    document.getElementById('fType').value = m.type;
+  } else {
+    document.getElementById('fName').value = '';
+    document.getElementById('fType').value = 'credit_card';
+  }
+  modal.show();
+  setTimeout(() => document.getElementById('fName').focus(), 300);
+}
+
+async function save() {
+  const name = document.getElementById('fName').value.trim();
+  const type = document.getElementById('fType').value;
+  if (!name) { alert('Ingresá un nombre.'); return; }
+  const url    = editingId ? `/api/payment-methods/${editingId}` : '/api/payment-methods';
+  const method = editingId ? 'PUT' : 'POST';
+  const resp   = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, type }),
+  });
+  if (!resp.ok) { const e = await resp.json(); alert(e.detail || 'Error al guardar.'); return; }
+  modal.hide();
+  await load();
+}
+
+function confirmDelete(id, name) {
+  document.getElementById('deleteName').textContent = name;
+  document.getElementById('confirmBtn').onclick = async () => {
+    const resp = await fetch(`/api/payment-methods/${id}`, { method: 'DELETE' });
+    if (!resp.ok) { const e = await resp.json(); alert(e.detail || 'Error al eliminar.'); return; }
+    deleteModal.hide();
+    await load();
+  };
+  deleteModal.show();
+}
+
+load();
+</script>
+</body>
+</html>

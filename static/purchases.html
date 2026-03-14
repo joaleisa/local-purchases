@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mis Compras – Compras</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+</head>
+<body class="bg-light">
+
+<!-- Navbar -->
+<nav class="navbar navbar-dark bg-dark mb-4">
+  <div class="container-fluid">
+    <span class="navbar-brand fw-bold">💳 Mis Compras</span>
+    <div>
+      <a href="/index.html"           class="btn btn-sm btn-outline-light me-1">Reporte</a>
+      <a href="/purchases.html"       class="btn btn-sm btn-light me-1">Compras</a>
+      <a href="/people.html"          class="btn btn-sm btn-outline-light me-1">Personas</a>
+      <a href="/payment_methods.html" class="btn btn-sm btn-outline-light">Métodos de pago</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container pb-5">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="form-check form-switch mb-0">
+      <input class="form-check-input" type="checkbox" id="activeOnly" checked />
+      <label class="form-check-label" for="activeOnly">Solo activas</label>
+    </div>
+    <button class="btn btn-primary" onclick="openModal()">
+      <i class="bi bi-plus-lg me-1"></i>Agregar compra
+    </button>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover bg-white shadow-sm rounded align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th>Descripción</th>
+          <th>Método de pago</th>
+          <th class="text-end">Monto total</th>
+          <th class="text-center">Cuotas</th>
+          <th>Primer pago</th>
+          <th>Último pago</th>
+          <th>Participantes</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add / Edit Modal -->
+<div class="modal fade" id="purchaseModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalTitle">Agregar compra</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="purchaseForm" novalidate>
+          <div class="row g-3">
+
+            <div class="col-12">
+              <label class="form-label fw-semibold">Descripción *</label>
+              <input type="text" class="form-control" id="fDesc" required />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Fecha de compra</label>
+              <input type="date" class="form-control" id="fDate" />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Método de pago *</label>
+              <select class="form-select" id="fMethod" required></select>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Monto total *</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" class="form-control" id="fAmount" min="0.01" step="0.01" required />
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Cant. cuotas *</label>
+              <input type="number" class="form-control" id="fInstallments" min="1" value="1" required />
+            </div>
+
+            <div class="col-md-4">
+              <!-- spacer -->
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Mes del primer pago *</label>
+              <select class="form-select" id="fMonth" required></select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Año del primer pago *</label>
+              <input type="number" class="form-control" id="fYear" min="2020" required />
+            </div>
+
+            <div class="col-12">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="fOwner" checked />
+                <label class="form-check-label" for="fOwner">Yo participo (pago mi parte)</label>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-semibold">Personas que comparten el costo</label>
+              <div id="participantsList"
+                   class="border rounded p-2 bg-white"
+                   style="max-height:160px;overflow-y:auto;min-height:48px">
+                <span class="text-muted small">Cargando personas…</span>
+              </div>
+              <div class="form-text">Seleccioná quiénes comparten el gasto con vos (te deben su parte).</div>
+            </div>
+
+            <!-- Live preview -->
+            <div class="col-12">
+              <div class="alert alert-info py-2 mb-0 small" id="preview">
+                Completá los campos para ver el desglose por cuota.
+              </div>
+            </div>
+
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="save()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirm modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-body">
+        ¿Eliminar la compra <strong id="deleteDesc"></strong>?
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-danger btn-sm" id="confirmDeleteBtn">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function fmt(n) {
+  return '$\u202f' + Number(n).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+// Add month/year offsets (0-indexed helper)
+function addMonths(year, month, n) {
+  const total = (year * 12 + (month - 1)) + n;
+  return { year: Math.floor(total / 12), month: (total % 12) + 1 };
+}
+
+function monthLabel(month, year) {
+  return `${MONTHS[month-1]} ${year}`;
+}
+
+let allPurchases = [];
+let allPeople    = [];
+let allMethods   = [];
+let editingId    = null;
+
+const purchaseModal = new bootstrap.Modal(document.getElementById('purchaseModal'));
+const deleteModal   = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+// Populate static selects
+function populateMonthSelect() {
+  const sel = document.getElementById('fMonth');
+  sel.innerHTML = MONTHS.map((m, i) =>
+    `<option value="${i+1}">${m}</option>`).join('');
+}
+
+function populateMethodSelect() {
+  const sel = document.getElementById('fMethod');
+  const grouped = {};
+  allMethods.forEach(m => {
+    const label = m.type === 'credit_card' ? 'Tarjetas de crédito' : 'Le debo a…';
+    if (!grouped[label]) grouped[label] = [];
+    grouped[label].push(m);
+  });
+  sel.innerHTML = Object.entries(grouped).map(([label, items]) =>
+    `<optgroup label="${label}">${items.map(m =>
+      `<option value="${m.id}">${m.name}</option>`).join('')}</optgroup>`
+  ).join('');
+}
+
+function renderParticipants(selectedIds = []) {
+  const container = document.getElementById('participantsList');
+  if (!allPeople.length) {
+    container.innerHTML = '<span class="text-muted small">No hay personas cargadas aún.</span>';
+    return;
+  }
+  container.innerHTML = allPeople.map(p => `
+    <div class="form-check">
+      <input class="form-check-input participant-cb" type="checkbox"
+             value="${p.id}" id="pcheck_${p.id}"
+             ${selectedIds.includes(p.id) ? 'checked' : ''} />
+      <label class="form-check-label" for="pcheck_${p.id}">${p.name}</label>
+    </div>`).join('');
+  container.querySelectorAll('.participant-cb').forEach(cb =>
+    cb.addEventListener('change', updatePreview));
+}
+
+function updatePreview() {
+  const amount       = parseFloat(document.getElementById('fAmount').value) || 0;
+  const installments = parseInt(document.getElementById('fInstallments').value) || 1;
+  const ownerIn      = document.getElementById('fOwner').checked;
+  const firstMonth   = parseInt(document.getElementById('fMonth').value) || 1;
+  const firstYear    = parseInt(document.getElementById('fYear').value)  || new Date().getFullYear();
+  const selected     = [...document.querySelectorAll('.participant-cb:checked')];
+
+  const numPayers = (ownerIn ? 1 : 0) + selected.length;
+
+  if (amount <= 0 || numPayers === 0) {
+    document.getElementById('preview').innerHTML =
+      ownerIn === false && selected.length === 0
+        ? '<span class="text-danger">⚠ Nadie está pagando. Marcá "Yo participo" o agregá participantes.</span>'
+        : 'Completá los campos para ver el desglose por cuota.';
+    return;
+  }
+
+  const installmentAmt = Math.round(amount / installments * 100) / 100;
+  const perPerson      = Math.round(installmentAmt / numPayers * 100) / 100;
+  const ownerAmt       = ownerIn ? perPerson : 0;
+  const othersAmt      = Math.round(perPerson * selected.length * 100) / 100;
+  const last           = addMonths(firstYear, firstMonth, installments - 1);
+
+  document.getElementById('preview').innerHTML =
+    `<strong>Cuota mensual (total):</strong> ${fmt(installmentAmt)}` +
+    `&nbsp;&nbsp;·&nbsp;&nbsp;<strong>Mi parte por cuota:</strong> ${fmt(ownerAmt)}` +
+    (selected.length > 0
+      ? `&nbsp;&nbsp;·&nbsp;&nbsp;<strong>C/participante:</strong> ${fmt(perPerson)}`
+      : '') +
+    `<br><strong>${installments} cuota${installments > 1 ? 's' : ''}:</strong> ` +
+    `${monthLabel(firstMonth, firstYear)} → ${monthLabel(last.month, last.year)}`;
+}
+
+// Wire preview events
+['fAmount','fInstallments','fMonth','fYear'].forEach(id =>
+  document.getElementById(id).addEventListener('input', updatePreview));
+document.getElementById('fOwner').addEventListener('change', updatePreview);
+
+async function loadAll() {
+  [allPurchases, allPeople, allMethods] = await Promise.all([
+    fetch('/api/purchases').then(r => r.json()),
+    fetch('/api/people').then(r => r.json()),
+    fetch('/api/payment-methods').then(r => r.json()),
+  ]);
+  renderTable();
+}
+
+function renderTable() {
+  const activeOnly = document.getElementById('activeOnly').checked;
+  const today = new Date();
+  const curIdx = today.getFullYear() * 12 + today.getMonth() + 1;
+
+  const rows = allPurchases.filter(p => {
+    if (!activeOnly) return true;
+    const lastIdx = p.first_payment_year * 12 + p.first_payment_month + p.num_installments - 1;
+    return lastIdx >= curIdx;
+  });
+
+  document.getElementById('tBody').innerHTML = rows.length === 0
+    ? `<tr><td colspan="8" class="text-center text-muted py-4">Sin compras${activeOnly ? ' activas' : ''}.</td></tr>`
+    : rows.map(p => {
+        const last = addMonths(p.first_payment_year, p.first_payment_month, p.num_installments - 1);
+        const lastIdx = p.first_payment_year * 12 + p.first_payment_month + p.num_installments - 1;
+        const isActive = lastIdx >= curIdx;
+        const participants = p.participants.map(x => x.name).join(', ') || (p.owner_participates ? 'Solo yo' : '–');
+        return `
+          <tr class="${isActive ? '' : 'text-muted'}">
+            <td>${p.description}</td>
+            <td><span class="badge ${p.payment_method_type === 'credit_card' ? 'bg-primary' : 'bg-purple text-white'}"
+                      style="${p.payment_method_type !== 'credit_card' ? 'background:#6f42c1' : ''}"
+                >${p.payment_method_name}</span></td>
+            <td class="text-end">${fmt(p.total_amount)}</td>
+            <td class="text-center">${p.num_installments}</td>
+            <td>${monthLabel(p.first_payment_month, p.first_payment_year)}</td>
+            <td>${monthLabel(last.month, last.year)}</td>
+            <td><small>${participants}</small></td>
+            <td class="text-end text-nowrap">
+              <button class="btn btn-sm btn-outline-secondary me-1" onclick="openModal(${p.id})">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete(${p.id}, '${p.description.replace(/'/g,"\\'")}')">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          </tr>`;
+      }).join('');
+}
+
+document.getElementById('activeOnly').addEventListener('change', renderTable);
+
+function openModal(id = null) {
+  editingId = id;
+  populateMonthSelect();
+  populateMethodSelect();
+
+  const today = new Date();
+  if (!id) {
+    document.getElementById('modalTitle').textContent = 'Agregar compra';
+    document.getElementById('purchaseForm').reset();
+    document.getElementById('fInstallments').value = 1;
+    document.getElementById('fMonth').value = today.getMonth() + 1;
+    document.getElementById('fYear').value  = today.getFullYear();
+    document.getElementById('fOwner').checked = true;
+    renderParticipants([]);
+  } else {
+    document.getElementById('modalTitle').textContent = 'Editar compra';
+    const p = allPurchases.find(x => x.id === id);
+    document.getElementById('fDesc').value         = p.description;
+    document.getElementById('fDate').value         = p.purchase_date || '';
+    document.getElementById('fMethod').value       = p.payment_method_id;
+    document.getElementById('fAmount').value       = p.total_amount;
+    document.getElementById('fInstallments').value = p.num_installments;
+    document.getElementById('fMonth').value        = p.first_payment_month;
+    document.getElementById('fYear').value         = p.first_payment_year;
+    document.getElementById('fOwner').checked      = p.owner_participates;
+    renderParticipants(p.participants.map(x => x.person_id));
+  }
+  updatePreview();
+  purchaseModal.show();
+}
+
+async function save() {
+  const desc = document.getElementById('fDesc').value.trim();
+  if (!desc) { alert('La descripción es obligatoria.'); return; }
+  const amount = parseFloat(document.getElementById('fAmount').value);
+  if (!amount || amount <= 0) { alert('Ingresá un monto válido.'); return; }
+  const installments = parseInt(document.getElementById('fInstallments').value);
+  if (!installments || installments < 1) { alert('Ingresá una cantidad de cuotas válida.'); return; }
+
+  const ownerIn    = document.getElementById('fOwner').checked;
+  const selected   = [...document.querySelectorAll('.participant-cb:checked')].map(cb => parseInt(cb.value));
+  const numPayers  = (ownerIn ? 1 : 0) + selected.length;
+  if (numPayers === 0) { alert('Nadie está pagando. Marcá "Yo participo" o seleccioná participantes.'); return; }
+
+  const body = {
+    description:         desc,
+    purchase_date:       document.getElementById('fDate').value || null,
+    total_amount:        amount,
+    num_installments:    installments,
+    first_payment_month: parseInt(document.getElementById('fMonth').value),
+    first_payment_year:  parseInt(document.getElementById('fYear').value),
+    payment_method_id:   parseInt(document.getElementById('fMethod').value),
+    owner_participates:  ownerIn,
+    participant_ids:     selected,
+  };
+
+  const url    = editingId ? `/api/purchases/${editingId}` : '/api/purchases';
+  const method = editingId ? 'PUT' : 'POST';
+  const resp   = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!resp.ok) { alert('Error al guardar.'); return; }
+  purchaseModal.hide();
+  await loadAll();
+}
+
+function confirmDelete(id, desc) {
+  document.getElementById('deleteDesc').textContent = desc;
+  document.getElementById('confirmDeleteBtn').onclick = async () => {
+    await fetch(`/api/purchases/${id}`, { method: 'DELETE' });
+    deleteModal.hide();
+    await loadAll();
+  };
+  deleteModal.show();
+}
+
+loadAll();
+</script>
+</body>
+</html>
