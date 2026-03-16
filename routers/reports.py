@@ -88,11 +88,22 @@ def get_report(month: int, year: int):
         credit_cards = [g for g in groups if g["payment_method_type"] == "credit_card"]
         person_debts = [g for g in groups if g["payment_method_type"] == "person_debt"]
 
+        # Aggregate totals owed per person across all items this month
+        person_totals: dict = {}
+        for item in items:
+            for pp in item["per_participant"]:
+                pid = pp["person_id"]
+                if pid not in person_totals:
+                    person_totals[pid] = {"person_id": pid, "name": pp["name"], "total": 0.0}
+                person_totals[pid]["total"] = round(person_totals[pid]["total"] + pp["amount"], 2)
+        people_totals = sorted(person_totals.values(), key=lambda x: x["name"])
+
         return {
             "month": month,
             "year": year,
             "credit_cards": credit_cards,
             "person_debts": person_debts,
+            "people_totals": people_totals,
             "summary": {
                 "cards_total": round(sum(g["total"] for g in credit_cards), 2),
                 "cards_mine": round(sum(g["mine"] for g in credit_cards), 2),

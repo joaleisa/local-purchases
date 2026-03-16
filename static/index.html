@@ -45,6 +45,14 @@
     <p class="mt-2">Sin cuotas este mes.</p>
   </div>
 
+  <!-- People totals section -->
+  <div id="peopleTotalsSection" class="mb-4" style="display:none">
+    <h5 class="text-secondary border-bottom pb-2 mb-3">
+      <i class="bi bi-people me-2"></i>Total que me deben este mes
+    </h5>
+    <div id="peopleTotalsContent" class="d-flex flex-wrap gap-2"></div>
+  </div>
+
   <!-- Credit cards section -->
   <div id="ccSection">
     <h5 class="text-secondary border-bottom pb-2 mb-3">
@@ -99,6 +107,7 @@ async function load() {
   const data = await r.json();
 
   renderSummary(data.summary);
+  renderPeopleTotals(data.people_totals || []);
 
   const hasCC = data.credit_cards.length > 0;
   const hasPD = data.person_debts.length > 0;
@@ -125,6 +134,20 @@ function renderSummary(s) {
           <div class="summary-label">${c.label}</div>
           <div class="summary-value text-${c.cls}">${fmt(c.value)}</div>
         </div>
+      </div>
+    </div>`).join('');
+}
+
+function renderPeopleTotals(people) {
+  const section = document.getElementById('peopleTotalsSection');
+  const content = document.getElementById('peopleTotalsContent');
+  if (people.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  content.innerHTML = people.map(p => `
+    <div class="card border-info">
+      <div class="card-body text-center px-4 py-3">
+        <div class="summary-label">${p.name}</div>
+        <div class="summary-value text-info">${fmt(p.total)}</div>
       </div>
     </div>`).join('');
 }
