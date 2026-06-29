@@ -1,7 +1,19 @@
+import sys
+import os
 import sqlite3
 from contextlib import contextmanager
 
-DB_PATH = "purchases.db"
+
+def _app_data_path(filename: str) -> str:
+    """Path next to the executable (or script) — writable, persists between runs."""
+    if getattr(sys, "frozen", False):
+        base = os.path.dirname(sys.executable)
+    else:
+        base = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base, filename)
+
+
+DB_PATH = _app_data_path("purchases.db")
 
 
 def _connect():

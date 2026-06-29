@@ -1,12 +1,20 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from database import get_db
 
 router = APIRouter(tags=["people"])
 
 
 class PersonIn(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=100)
+
+    @field_validator("name")
+    @classmethod
+    def _strip_name(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("El nombre no puede estar vacío")
+        return v
 
 
 @router.get("/people")
