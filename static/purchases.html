@@ -165,6 +165,15 @@ function fmt(n) {
   return '$\u202f' + Number(n).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // Add month/year offsets (0-indexed helper)
 function addMonths(year, month, n) {
   const total = (year * 12 + (month - 1)) + n;
@@ -199,8 +208,8 @@ function populateMethodSelect() {
     grouped[label].push(m);
   });
   sel.innerHTML = Object.entries(grouped).map(([label, items]) =>
-    `<optgroup label="${label}">${items.map(m =>
-      `<option value="${m.id}">${m.name}</option>`).join('')}</optgroup>`
+    `<optgroup label="${escapeHtml(label)}">${items.map(m =>
+      `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('')}</optgroup>`
   ).join('');
 }
 
@@ -215,7 +224,7 @@ function renderParticipants(selectedIds = []) {
       <input class="form-check-input participant-cb" type="checkbox"
              value="${p.id}" id="pcheck_${p.id}"
              ${selectedIds.includes(p.id) ? 'checked' : ''} />
-      <label class="form-check-label" for="pcheck_${p.id}">${p.name}</label>
+      <label class="form-check-label" for="pcheck_${p.id}">${escapeHtml(p.name)}</label>
     </div>`).join('');
   container.querySelectorAll('.participant-cb').forEach(cb =>
     cb.addEventListener('change', updatePreview));
@@ -286,13 +295,13 @@ function renderTable() {
         const last = addMonths(p.first_payment_year, p.first_payment_month, p.num_installments - 1);
         const lastIdx = p.first_payment_year * 12 + p.first_payment_month + p.num_installments - 1;
         const isActive = lastIdx >= curIdx;
-        const participants = p.participants.map(x => x.name).join(', ') || (p.owner_participates ? 'Solo yo' : '–');
+        const participants = p.participants.map(x => escapeHtml(x.name)).join(', ') || (p.owner_participates ? 'Solo yo' : '–');
         return `
           <tr class="${isActive ? '' : 'text-muted'}">
-            <td>${p.description}</td>
+            <td>${escapeHtml(p.description)}</td>
             <td><span class="badge ${p.payment_method_type === 'credit_card' ? 'bg-primary' : 'bg-purple text-white'}"
                       style="${p.payment_method_type !== 'credit_card' ? 'background:#6f42c1' : ''}"
-                >${p.payment_method_name}</span></td>
+                >${escapeHtml(p.payment_method_name)}</span></td>
             <td class="text-end">${fmt(p.total_amount)}</td>
             <td class="text-center">${p.num_installments}</td>
             <td>${monthLabel(p.first_payment_month, p.first_payment_year)}</td>
@@ -302,7 +311,7 @@ function renderTable() {
               <button class="btn btn-sm btn-outline-secondary me-1" onclick="openModal(${p.id})">
                 <i class="bi bi-pencil"></i>
               </button>
-              <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete(${p.id}, '${p.description.replace(/'/g,"\\'")}')">
+              <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete(${p.id}, ${JSON.stringify(p.description)})">
                 <i class="bi bi-trash"></i>
               </button>
             </td>

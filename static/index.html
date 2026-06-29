@@ -80,6 +80,15 @@ function fmt(n) {
   return '$\u202f' + Number(n).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 let curMonth, curYear;
 
 function init() {
@@ -146,7 +155,7 @@ function renderPeopleTotals(people) {
   content.innerHTML = people.map(p => `
     <div class="card border-info">
       <div class="card-body text-center px-4 py-3">
-        <div class="summary-label">${p.name}</div>
+        <div class="summary-label">${escapeHtml(p.name)}</div>
         <div class="summary-value text-info">${fmt(p.total)}</div>
       </div>
     </div>`).join('');
@@ -156,7 +165,7 @@ function renderGroups(groups, containerId) {
   document.getElementById(containerId).innerHTML = groups.map(g => `
     <div class="card method-card shadow-sm">
       <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <strong>${g.payment_method_name}</strong>
+        <strong>${escapeHtml(g.payment_method_name)}</strong>
         <span class="small text-muted">
           Total&nbsp;<strong>${fmt(g.total)}</strong>
           &nbsp;·&nbsp;
@@ -180,7 +189,7 @@ function renderGroups(groups, containerId) {
             <tbody>
               ${g.items.map(item => `
               <tr>
-                <td>${item.description}</td>
+                <td>${escapeHtml(item.description)}</td>
                 <td class="text-center">${item.installment_number}/${item.num_installments}</td>
                 <td class="text-end">${fmt(item.installment_amount)}</td>
                 <td class="text-end ${item.owner_amount === 0 ? 'text-muted' : ''}">${fmt(item.owner_amount)}</td>
@@ -189,7 +198,7 @@ function renderGroups(groups, containerId) {
                     ? `<span class="text-muted small">${item.owner_participates ? 'Solo yo' : '–'}</span>`
                     : item.per_participant.map(p =>
                         `<span class="me-2 text-nowrap">
-                           <span class="badge bg-secondary">${p.name}</span>
+                           <span class="badge bg-secondary">${escapeHtml(p.name)}</span>
                            <span class="text-info fw-semibold">${fmt(p.amount)}</span>
                          </span>`
                       ).join('')

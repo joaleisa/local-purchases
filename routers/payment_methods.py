@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from typing import Literal
 from database import get_db
 
@@ -7,8 +7,16 @@ router = APIRouter(tags=["payment_methods"])
 
 
 class PaymentMethodIn(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=100)
     type: Literal["credit_card", "person_debt"]
+
+    @field_validator("name")
+    @classmethod
+    def _strip_name(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("El nombre no puede estar vacío")
+        return v
 
 
 @router.get("/payment-methods")

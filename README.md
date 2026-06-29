@@ -50,3 +50,89 @@ The idea is to check how much my credit card final amount is, how much of that a
 The thing is I had a previous report that show those totals but I always have to enter the excel I used for a database to see each purchase and check I forgot one or added the charge for the wrong person.
 So, it'd be nice to have like the summarized report for the totals of my payment methods, the individual total for those methods and maybe another report to see every purchase and edit them, delete them, etc.
 
+## Running locally (development)
+
+```bash
+pip install -r requirements.txt
+python main.py
+```
+
+This opens `http://127.0.0.1:8000` in your browser automatically. `purchases.db` is created next to `main.py` on first run.
+
+## Building a standalone executable
+
+To share the app with someone who doesn't have Python installed, it can be packaged into a single
+executable file with [PyInstaller](https://pyinstaller.org/). The resulting file bundles Python, all
+dependencies, and the `static/` folder — the person only needs that one file plus the same operating
+system you built it on (PyInstaller does **not** cross-compile: a binary built on macOS only runs on
+macOS, etc.).
+
+### One-time setup
+
+```bash
+pip install pyinstaller
+```
+
+### Build command
+
+Run from the project root (same folder as `main.py`).
+
+**macOS / Linux:**
+```bash
+pyinstaller --onefile --name MisCompras \
+  --add-data "static:static" \
+  --collect-submodules uvicorn \
+  --hidden-import uvicorn.lifespan.on \
+  --hidden-import uvicorn.lifespan.off \
+  --hidden-import uvicorn.protocols.http.auto \
+  --hidden-import uvicorn.protocols.websockets.auto \
+  --hidden-import uvicorn.loops.auto \
+  main.py
+```
+
+**Windows** (note: `--add-data` uses `;` instead of `:` on Windows):
+```bash
+pyinstaller --onefile --name MisCompras --add-data "static;static" --collect-submodules uvicorn --hidden-import uvicorn.lifespan.on --hidden-import uvicorn.lifespan.off --hidden-import uvicorn.protocols.http.auto --hidden-import uvicorn.protocols.websockets.auto --hidden-import uvicorn.loops.auto main.py
+```
+
+The output is `dist/MisCompras` (or `dist/MisCompras.exe` on Windows) — that single file is what gets shared.
+
+**Why the `--hidden-import` flags are needed:** uvicorn picks its event loop, HTTP protocol, and
+lifespan implementations dynamically at runtime, so PyInstaller's static import scanner can't see
+them automatically. Without these flags the built executable will run but immediately fail with an
+import error when uvicorn tries to start. If a future uvicorn/fastapi upgrade changes this, the build
+will let you know via a clear `ModuleNotFoundError` in the terminal when you test the new exe (see below).
+
+### After building — always test before sending it to anyone
+
+```bash
+cd dist
+rm -f purchases.db          # start from a clean slate
+./MisCompras                # MisCompras.exe on Windows
+```
+
+Confirm:
+- It opens a browser at `http://127.0.0.1:8000` automatically and the pages load.
+- You can add a person, a payment method, and a purchase, and the report shows correct numbers.
+- A `purchases.db` file appears next to the executable (this is where that machine's data lives).
+
+### Cleaning up build artifacts
+
+PyInstaller leaves a `build/` folder and a `.spec` file behind; safe to delete between builds (or
+keep the `.spec` file if you want to tweak build options without retyping the whole command):
+
+```bash
+rm -rf build dist *.spec
+```
+
+### Sharing with friends
+
+Send only the single executable file (`MisCompras` / `MisCompras.exe`). Tell them:
+- It only listens on `127.0.0.1` (their own machine), so nobody else on their Wi-Fi can reach it.
+- Running it creates `purchases.db` next to wherever they put the file — that file *is* their data,
+  so it should travel with the executable if they move it.
+- Since it's an unsigned, homemade executable, their OS will likely show a security warning the
+  first time they run it (Windows SmartScreen, macOS "unidentified developer", etc.) — this is
+  expected and they can click through it ("More info → Run anyway" on Windows; right-click → Open
+  on macOS).
+- Each friend's copy is fully independent — there's no shared data or syncing between instances.
