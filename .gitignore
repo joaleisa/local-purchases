@@ -205,6 +205,9 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+*.bat
+*.tmp.driveupload
+
 # Marimo
 marimo/_static/
 marimo/_lsp/
